@@ -1,0 +1,115 @@
+#! /bin/bash
+
+help_message(){
+    bold=$(tput bold)
+    normal=$(tput sgr0)
+
+    echo "${bold}NAME"
+    echo "      ${normal} easyvenv.sh - Shell script to create a python3 virtual environment"
+
+    echo
+    echo "${bold}SYNOPSIS"
+    echo "      ${normal}./easyvenv.sh OPTIONS [PARAMETERS]"
+
+    echo
+    echo "${bold}DESCRIPTION"
+    echo "      ${normal}easyvenv.sh is a shell script to create python3 virtual environments(venvs). The idea behind this tool is to create venvs and setting up the shortcuts in one go. This tool uses python3's default virtual environment manager called venv. The biggest advantage of this script would be its ability to store all venvs in one place." | fmt
+
+    echo
+    echo "${bold}USAGE"
+    echo "      ${normal}1.) [ONLY ONCE] easyvenv -init"
+    echo "      2.) easyvenv OPTIONS [PARAMETERS]"
+
+    echo
+    echo "${bold}REQUISITES"
+    echo "      ${normal}python3 should be installed, use 'python3 --version' to check if it is installed. pip3 should be installed, use pip3 --version to check if it is installed" | fmt
+
+    echo
+    echo "${bold}OPTIONS"
+
+    echo
+    echo "  ${bold}-help"
+    echo "      ${normal}show this help message and exit" | fmt
+
+    echo
+    echo "  ${bold}-init"
+    echo "      ${normal}Initialize bashrc so that environments can be activated"
+
+	echo
+    echo "  ${bold}-create <environment name to create>"
+    echo "      ${normal}create virtual environment" | fmt
+
+	echo
+    echo "  ${bold}-list"
+    echo "      ${normal}list all virtual environments created using this script" | fmt
+
+	echo
+    echo "  ${bold}-remove <environment name to remove>"
+    echo "      ${normal}remove the virtual environment created using this script" | fmt
+}
+
+init(){
+    echo "[[ -f "$HOME/.venvs3/aliases" ]] && . "$HOME/.venvs3/aliases""  >> $HOME/.bashrc
+}
+
+list(){
+	input=$HOME/'.venvs3/'envs
+	while read -r line
+	do
+		echo $line | fmt
+	done < $input
+}
+
+remove(){
+	# remove the first occurence of the given project names
+	# \b word boundary: otherwise matching characters would be deleted
+	project_name=$2
+	# delete project name from envs
+	sed -i "\|$2|d" $HOME/.venvs3/envs
+
+	line="alias activate_$project_name='source $HOME/.venvs3/$project_name/bin/activate'"
+	# delete alias
+	# sed can take any character as delimiter but firt use of that delimiter must be escaped
+	sed -i "\|$line|d" $HOME/.venvs3/aliases
+	# remove the environment
+	rm -r $HOME'/.venvs3/'$2
+}
+
+create(){
+    # create .venvs3 if it doesn't exist
+	project_name=${@: -1}
+	venv_args=${@:2}
+	# echo "venv_args: $venv_args"
+	# echo "project: $project_name"
+    path="$HOME/.venvs3/$project_name"
+	# ${@:2} : all arguments except first and last
+    # create the environment at the given location
+	if [ $project_name = $venv_args ]; then
+		python3 -m venv $path
+	else
+    	python3 -m venv $venv_args $path
+	fi
+    # create a variable inside bashrc file so to activate the environment from anywhere
+    echo "alias activate_$project_name='source $HOME/.venvs3/"$project_name"/bin/activate'" >> ~/.venvs3/aliases
+	# keep a record of environments created using envs file
+	echo "$project_name" >> "$HOME/.venvs3/envs"
+
+    # Some more information for end user
+    printf "venv path: $path\n" | fmt
+	echo ''
+    printf "Restart the terminal or use source ~/.bashrc and then run activate_"$project_name" to activate the environment\n" | fmt
+}
+
+if [ "$1" == "-help" ]
+    then help_message
+elif [ "$1" == '-list' ]
+    then list
+elif [ "$1" == "-init" ]
+    then init
+elif [ "$1" == "-remove" ]
+    then remove $@
+elif [ "$1" == "-create" ]
+    then create $@
+else
+	printf "Something Unexpected happened\n"
+fi

@@ -1,0 +1,13 @@
+#! /bin/bash
+
+mount-ntfs(){
+	#permissions=$1
+	#device=$2
+	#target=$3
+	sudo mount -t ntfs-3g -o permissions $2 $3
+	sudo chown -R adarsh:users $3
+	sudo chmod -R $1 $3
+}
+
+# run the code
+mount-ntfs $@
